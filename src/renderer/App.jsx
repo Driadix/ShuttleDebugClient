@@ -17,26 +17,24 @@ function App() {
 
   // --- API Event Listeners ---
   useEffect(() => {
-    if (window.api) {
-      const removeScanProgressListener = window.api.on('scan-progress', ({ ip, percent }) => {
-        setScanStatus({ percent, ip, complete: false });
-      });
+    const removeScanProgressListener = window.api.on('scan-progress', ({ ip, percent }) => {
+      setScanStatus({ percent, ip, complete: false });
+    });
 
-      const removeHubFoundListener = window.api.on('hub-found', (hub) => {
-        setHubs(prev => [...prev, hub]);
-      });
+    const removeHubFoundListener = window.api.on('hub-found', (hub) => {
+      setHubs(prev => [...prev, hub]);
+    });
 
-      // Listen for disconnects to deselect in sidebar
-      const removeDisconnectListener = window.api.on('hub-disconnected', () => {
-        setSelectedHubId(null);
-      });
+    // Listen for disconnects to deselect in sidebar
+    const removeDisconnectListener = window.api.on('hub-disconnected', () => {
+      setSelectedHubId(null);
+    });
 
-      return () => {
-        removeScanProgressListener();
-        removeHubFoundListener();
-        removeDisconnectListener();
-      };
-    }
+    return () => {
+      removeScanProgressListener();
+      removeHubFoundListener();
+      removeDisconnectListener();
+    };
   }, []);
 
 
