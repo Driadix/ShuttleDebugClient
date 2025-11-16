@@ -33,6 +33,32 @@ activeSocket = null;
 });
 }
 
+function createShuttleDetailsWindow(hub) {
+  const shuttleWindow = new BrowserWindow({
+    width: 1000,
+    height: 700,
+    title: `Shuttle ${hub.name} | ${hub.ip}`,
+    webPreferences: {
+      preload: path.join(__dirname, '..', 'preload', 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  if (process.env.NODE_ENV === 'development') {
+    shuttleWindow.loadURL(`http://localhost:5173/#/shuttle/${hub.id}`);
+    // shuttleWindow.webContents.openDevTools();
+  } else {
+    shuttleWindow.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'), {
+      hash: `#/shuttle/${hub.id}`,
+    });
+  }
+
+  shuttleWindow.webContents.on('did-finish-load', () => {
+    shuttleWindow.webContents.send('shuttle-data', hub);
+  });
+}
+
 // === App Lifecycle ===
 app.whenReady().then(() => {
 createWindow();
@@ -182,6 +208,10 @@ return { success: true, path: filePath };
 return { success: false, error: err.message };
 }
 });
+
+ipcMain.handle('open-shuttle-details', (event, hub) => {
+    createShuttleDetailsWindow(hub);
+  });
 }
 
 // --- Helper: Data Parser ---

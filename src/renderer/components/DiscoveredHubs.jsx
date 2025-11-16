@@ -27,7 +27,10 @@ const DiscoveredHubs = ({ hubs, onSelectHub, selectedHub }) => {
       {hubs.map(hub => (
         <div
           key={hub.id}
-          onClick={() => onSelectHub(hub)}
+          onClick={() => {
+            onSelectHub(hub);
+            window.api.invoke('open-shuttle-details', hub);
+          }}
           className={`flex cursor-pointer flex-col gap-1 rounded-lg p-3 transition-colors ${selectedHub && selectedHub.id === hub.id ? 'bg-primary/10 dark:bg-primary/20 ring-2 ring-primary' : 'hover:bg-gray-100 dark:hover:bg-white/5'}`}
         >
           <div className="flex items-center justify-between">
