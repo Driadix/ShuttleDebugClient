@@ -15,44 +15,46 @@
 
           // --- NEW: API Event Listeners ---
           useEffect(() => {
-            // 1. Get initial static data (name, ip)
-            const removeDataListener = window.api.on('shuttle-data', (data) => {
-              setShuttle(data);
-              setLogs(prev => [...prev, `[INFO] Opening details for ${data.name} (${data.ip})`]);
+            if (window.api) {
+              // 1. Get initial static data (name, ip)
+              const removeDataListener = window.api.on('shuttle-data', (data) => {
+                setShuttle(data);
+                setLogs(prev => [...prev, `[INFO] Opening details for ${data.name} (${data.ip})`]);
 
-              // Now that we have the IP, try to connect
-              window.api.invoke('connect-hub', data.ip)
-                .catch(err => setLogs(prev => [...prev, `[ERROR] Initial connection failed: ${err.message}`]));
-            });
+                // Now that we have the IP, try to connect
+                window.api.invoke('connect-hub', data.ip)
+                  .catch(err => setLogs(prev => [...prev, `[ERROR] Initial connection failed: ${err.message}`]));
+              });
 
-            // 2. Listen for logs
-            const removeLogListener = window.api.on('log-received', (log) => {
-              setLogs(prev => [...prev, log]);
-            });
+              // 2. Listen for logs
+              const removeLogListener = window.api.on('log-received', (log) => {
+                setLogs(prev => [...prev, log]);
+              });
 
-            // 3. Listen for telemetry
-            const removeTelemetryListener = window.api.on('telemetry-update', (data) => {
-              setTelemetry(data);
-            });
+              // 3. Listen for telemetry
+              const removeTelemetryListener = window.api.on('telemetry-update', (data) => {
+                setTelemetry(data);
+              });
 
-            // 4. Listen for connection status
-            const removeConnectListener = window.api.on('hub-connected', () => {
-              setConnectionStatus('connected');
-              setLogs(prev => [...prev, '[INFO] Hub connection established.']);
-            });
+              // 4. Listen for connection status
+              const removeConnectListener = window.api.on('hub-connected', () => {
+                setConnectionStatus('connected');
+                setLogs(prev => [...prev, '[INFO] Hub connection established.']);
+              });
 
-            const removeDisconnectListener = window.api.on('hub-disconnected', () => {
-              setConnectionStatus('disconnected');
-              setLogs(prev => [...prev, '[WARN] Hub disconnected.']);
-            });
+              const removeDisconnectListener = window.api.on('hub-disconnected', () => {
+                setConnectionStatus('disconnected');
+                setLogs(prev => [...prev, '[WARN] Hub disconnected.']);
+              });
 
-            return () => {
-              removeDataListener();
-              removeLogListener();
-              removeTelemetryListener();
-              removeConnectListener();
-              removeDisconnectListener();
-            };
+              return () => {
+                removeDataListener();
+                removeLogListener();
+                removeTelemetryListener();
+                removeConnectListener();
+                removeDisconnectListener();
+              };
+            }
           }, []);
 
           // --- NEW: Command Handlers ---
