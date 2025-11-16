@@ -17,7 +17,7 @@ function createWindow() {
     }
   });
   if (process.env.NODE_ENV === "development") {
-    mainWindow.loadURL("http://localhost:5173");
+    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
     mainWindow.loadFile(path.join(__dirname, "..", "..", "dist", "index.html"));
   }
@@ -45,7 +45,7 @@ function createShuttleDetailsWindow(hub) {
   });
   activeShuttleWindow = shuttleWindow;
   if (process.env.NODE_ENV === "development") {
-    shuttleWindow.loadURL(`http://localhost:5173/#/shuttle/${hub.id}`);
+    shuttleWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}/#/shuttle/${hub.id}`);
   } else {
     shuttleWindow.loadFile(path.join(__dirname, "..", "..", "dist", "index.html"), {
       hash: `#/shuttle/${hub.id}`
