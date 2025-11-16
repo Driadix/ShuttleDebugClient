@@ -29,11 +29,11 @@ const ScannerControl = () => {
         </label>
         <label className="flex w-full flex-col">
           <p className="text-sm font-medium leading-normal pb-1.5 text-text-primary-light dark:text-text-primary-dark">End IP</p>
-          <input className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 h-10 px-3 text-sm font-normal text-text-primary-light dark:text-text-primary-dark placeholder="192.168.40.255" defaultValue="192.168.40.255" />
+          <input className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 h-10 px-3 text-sm font-normal text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark" placeholder="192.168.40.255" defaultValue="192.168.40.255" />
         </label>
         <label className="flex w-full flex-col">
           <p className="text-sm font-medium leading-normal pb-1.5 text-text-primary-light dark:text-text-primary-dark">Timeout (ms)</p>
-          <input className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 h-10 px-3 text-sm font-normal text-text-primary-light dark:text-text-primary-dark placeholder="500" defaultValue="500" />
+          <input className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg border border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark focus:outline-0 focus:ring-2 focus:ring-primary/50 h-10 px-3 text-sm font-normal text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark" placeholder="500" defaultValue="500" />
         </label>
       </div>
       <button onClick={handleScan} className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-wide hover:bg-primary/90 transition-colors">
