@@ -4,7 +4,10 @@ const net = require('net');
 const fs = require('fs');
 
 let mainWindow;
-let activeSocket = null; // Holds our single, persistent TCP connection
+// Holds our single, persistent TCP connection
+let activeSocket = null;
+// Holds the BrowserWindow object for the *currently connected* shuttle
+let activeShuttleWindow = null;
 
 function createWindow () {
 mainWindow = new BrowserWindow({
@@ -34,16 +37,24 @@ activeSocket = null;
 }
 
 function createShuttleDetailsWindow(hub) {
+  // If another shuttle window is open, close it.
+  if (activeShuttleWindow) {
+    activeShuttleWindow.close();
+  }
+
   const shuttleWindow = new BrowserWindow({
     width: 1000,
     height: 700,
-    title: `Shuttle ${hub.name} | ${hub.ip}`,
+    title: `${hub.name} | ${hub.ip}`,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
+
+  // Set this new window as the active one
+  activeShuttleWindow = shuttleWindow;
 
   if (process.env.NODE_ENV === 'development') {
     shuttleWindow.loadURL(`http://localhost:5173/#/shuttle/${hub.id}`);
@@ -55,7 +66,23 @@ function createShuttleDetailsWindow(hub) {
   }
 
   shuttleWindow.webContents.on('did-finish-load', () => {
+    // Send initial static data
     shuttleWindow.webContents.send('shuttle-data', hub);
+  });
+
+  // Handle window closure
+  shuttleWindow.on('closed', () => {
+    // If the window we just closed was the *active* one, disconnect the socket.
+    if (activeShuttleWindow === shuttleWindow) {
+      if (activeSocket) {
+        activeSocket.destroy();
+        activeSocket = null;
+      }
+      activeShuttleWindow = null;
+      mainWindow.webContents.send('log-received', '[INFO] Shuttle window closed. Disconnected.');
+      // Tell the main window to update its UI
+      mainWindow.webContents.send('hub-disconnected');
+    }
   });
 }
 
@@ -77,37 +104,105 @@ if (process.platform !== 'darwin') app.quit();
 function registerIpcHandlers() {
 
 // --- Network Scanner ---
+// Helper function for the scanner
+function probeHub(ip, port, timeout = 1000) {
+  return new Promise((resolve, reject) => {
+    const socket = new net.Socket();
+    let buffer = '';
+
+    const timer = setTimeout(() => {
+      socket.destroy();
+      reject(new Error('Timeout'));
+    }, timeout);
+
+    socket.on('connect', () => {
+      // Connected. Now we wait for data.
+    });
+
+    socket.on('data', (data) => {
+      buffer += data.toString();
+      const boundary = buffer.indexOf('\n');
+      if (boundary !== -1) {
+        const line = buffer.substring(0, boundary).trim();
+        if (line.startsWith('##TELEMETRY##:')) {
+          try {
+            const jsonString = line.substring(line.indexOf('{'));
+            const telemetry = JSON.parse(jsonString);
+
+            // Success! We found a hub.
+            clearTimeout(timer);
+            socket.destroy();
+            resolve({
+              id: ip,
+              ip: ip,
+              name: `Shuttle ${telemetry.shuttle || ip}`, // Use shuttle number or IP
+              status: telemetry.status_str || 'Unknown',
+              battery: telemetry.batt || 0
+            });
+          } catch (e) {
+            // Malformed JSON
+            clearTimeout(timer);
+            socket.destroy();
+            reject(new Error('Malformed telemetry'));
+          }
+        } else {
+          // Not a hub
+          clearTimeout(timer);
+          socket.destroy();
+          reject(new Error('Not a hub'));
+        }
+      }
+    });
+
+    socket.on('error', (err) => {
+      clearTimeout(timer);
+      socket.destroy();
+      reject(err);
+    });
+
+    socket.on('close', () => {
+      clearTimeout(timer);
+      reject(new Error('Connection closed prematurely'));
+    });
+
+    socket.connect(port, ip);
+  });
+}
+
 ipcMain.handle('start-scan', async (event, { start, end, timeout }) => {
-const startIpArr = start.split('.').map(Number);
-const endIpArr = end.split('.').map(Number);
-const PORT = 8080; // Per-spec (assumed)
+  const startIpArr = start.split('.').map(Number);
+  const endIpArr = end.split('.').map(Number);
+  const PORT = 3333; // This is the port from debug_server_task.cpp
+  let hubsFound = 0;
 
-// Simple scanner for the last octet only (as per mock data)
-for (let i = startIpArr[3]; i <= endIpArr[3]; i++) {
-const ip = `${startIpArr.slice(0, 3).join('.')}.${i}`;
+  // Simple scanner for the last octet only
+  const startOctet = startIpArr[3];
+  const endOctet = endIpArr[3];
+  const baseIp = startIpArr.slice(0, 3).join('.');
 
-// Send progress to renderer
-const percent = ((i - startIpArr[3] + 1) / (endIpArr[3] - startIpArr[3] + 1)) * 100;
-mainWindow.webContents.send('scan-progress', { ip, percent: Math.round(percent) });
+  for (let i = startOctet; i <= endOctet; i++) {
+    const ip = `${baseIp}.${i}`;
 
-try {
-await checkPort(ip, PORT, timeout);
-// On success, we'd normally get telemetry. For now, just send a mock hub.
-// In a real app, we'd connect, wait for ##TELEMETRY##, then disconnect.
-const mockHub = {
-id: ip, // Use IP as ID
-name: `Hub ${ip}`,
-ip: ip,
-status: 'Stand By',
-battery: Math.floor(Math.random() * 100),
-details: { firmware: 'v1.0.0', mac: '??:??:??:??:??:??', uptime: 'N/A', signal: 'N/A' }
-};
-mainWindow.webContents.send('hub-found', mockHub);
-} catch (error) {
-// Port is closed, do nothing
-}
-}
-return 'Scan Complete';
+    // Send progress to renderer
+    const percent = ((i - startOctet + 1) / (endOctet - startOctet + 1)) * 100;
+    if (mainWindow) {
+      mainWindow.webContents.send('scan-progress', { ip, percent: Math.round(percent) });
+    }
+
+    try {
+      // Use the new probeHub function
+      const hubData = await probeHub(ip, PORT, timeout);
+      // On success, send the *real* hub data
+      if (mainWindow) {
+        mainWindow.webContents.send('hub-found', hubData);
+      }
+      hubsFound++;
+    } catch (error) {
+      // probeHub rejects on timeout, error, or not a hub. This is normal.
+      // console.log(`No hub at ${ip}: ${error.message}`);
+    }
+  }
+  return `Scan Complete. Found ${hubsFound} hubs.`;
 });
 
 // --- Hub Connection ---
@@ -117,43 +212,58 @@ activeSocket.destroy();
 activeSocket = null;
 }
 
-const PORT = 8080; // Per-spec (assumed)
+const PORT = 3333;
 
 return new Promise((resolve, reject) => {
 const socket = new net.Socket();
 
-socket.on('connect', () => {
-mainWindow.webContents.send('log-received', `[INFO] TCP socket connected to ${ip}:${PORT}`);
-activeSocket = socket;
+    socket.on('connect', () => {
+      activeSocket = socket;
 
-// Handle incoming data
-let buffer = '';
-socket.on('data', (data) => {
-buffer += data.toString();
-let boundary = buffer.indexOf('\n');
+      // Send logs to BOTH windows
+      const connectMsg = `[INFO] TCP socket connected to ${ip}:${PORT}`;
+      if (mainWindow) mainWindow.webContents.send('log-received', connectMsg);
+      if (activeShuttleWindow) activeShuttleWindow.webContents.send('log-received', connectMsg);
 
-while (boundary !== -1) {
-const line = buffer.substring(0, boundary).trim();
-buffer = buffer.substring(boundary + 1);
+      // Tell the shuttle window it's connected
+      if (activeShuttleWindow) {
+        activeShuttleWindow.webContents.send('hub-connected');
+      }
 
-if (line) {
-handleSocketData(line);
-}
-boundary = buffer.indexOf('\n');
-}
-});
+      // Handle incoming data
+      let buffer = '';
+      socket.on('data', (data) => {
+        buffer += data.toString();
+        let boundary = buffer.indexOf('\n');
 
-resolve({ success: true, ip });
-});
+        while (boundary !== -1) {
+          const line = buffer.substring(0, boundary).trim();
+          buffer = buffer.substring(boundary + 1);
 
-socket.on('close', () => {
-mainWindow.webContents.send('log-received', `[WARN] Connection to ${ip} closed.`);
-mainWindow.webContents.send('hub-disconnected');
-if (activeSocket === socket) {
-activeSocket = null;
-}
-reject(new Error('Connection closed'));
-});
+          if (line) {
+            handleSocketData(line); // This now calls our new JSON parser
+          }
+          boundary = buffer.indexOf('\n');
+        }
+      });
+
+      resolve({ success: true, ip });
+    });
+
+    socket.on('close', () => {
+      const closeMsg = `[WARN] Connection to ${ip} closed.`;
+      if (mainWindow) mainWindow.webContents.send('log-received', closeMsg);
+      if (activeShuttleWindow) activeShuttleWindow.webContents.send('log-received', closeMsg);
+
+      // Send the disconnect event to both
+      if (mainWindow) mainWindow.webContents.send('hub-disconnected');
+      if (activeShuttleWindow) activeShuttleWindow.webContents.send('hub-disconnected');
+
+      if (activeSocket === socket) {
+        activeSocket = null;
+      }
+      reject(new Error('Connection closed'));
+    });
 
 socket.on('error', (err) => {
 mainWindow.webContents.send('log-received', `[ERROR] Connection error: ${err.message}`);
@@ -180,14 +290,19 @@ return false;
 });
 
 // --- Send Command ---
-ipcMain.on('send-command', (event, command) => {
-if (activeSocket) {
-activeSocket.write(command + '\n');
-mainWindow.webContents.send('log-received', `[CMD] > ${command}`);
-} else {
-mainWindow.webContents.send('log-received', `[ERROR] Cannot send command. No active connection.`);
-}
-});
+        ipcMain.on('send-command', (event, command) => {
+          const cmdMsg = `[CMD] > ${command}`;
+          const errMsg = `[ERROR] Cannot send command. No active connection.`;
+
+          if (activeSocket) {
+            activeSocket.write(command + '\n');
+            if (mainWindow) mainWindow.webContents.send('log-received', cmdMsg);
+            if (activeShuttleWindow) activeShuttleWindow.webContents.send('log-received', cmdMsg);
+          } else {
+            if (mainWindow) mainWindow.webContents.send('log-received', errMsg);
+            if (activeShuttleWindow) activeShuttleWindow.webContents.send('log-received', errMsg);
+          }
+        });
 
 // --- Save Logs ---
 ipcMain.handle('save-log', async (event, logs) => {
@@ -216,26 +331,29 @@ ipcMain.handle('open-shuttle-details', (event, hub) => {
 
 // --- Helper: Data Parser ---
 function handleSocketData(line) {
-if (line.startsWith('##TELEMETRY##')) {
-// Example: ##TELEMETRY##v2.1.4,30:AE:...,7h 14m, -65dBm,88,Stand By
-try {
-const parts = line.replace('##TELEMETRY##', '').split(',');
-const telemetry = {
-firmware: parts[0],
-mac: parts[1],
-uptime: parts[2],
-signal: parts[3],
-battery: parseInt(parts[4], 10),
-status: parts[5]
-};
-mainWindow.webContents.send('telemetry-update', telemetry);
-} catch (err) {
-mainWindow.webContents.send('log-received', `[ERROR] Failed to parse telemetry: ${line}`);
-}
-} else {
-// Send all other lines as raw logs
-mainWindow.webContents.send('log-received', line);
-}
+  // Route logs to the active shuttle window if it exists, otherwise main.
+  const targetWindow = activeShuttleWindow || mainWindow;
+  if (!targetWindow) return; // No window to send to
+
+  if (line.startsWith('##TELEMETRY##:')) {
+    try {
+      // Extract the JSON part of the string
+      const jsonString = line.substring(line.indexOf('{'));
+      const telemetry = JSON.parse(jsonString);
+
+      // Send the full, parsed JSON object to the active window
+      targetWindow.webContents.send('telemetry-update', telemetry);
+
+    } catch (err) {
+      const errMsg = `[ERROR] Failed to parse telemetry: ${line}`;
+      // Send error to both windows
+      if (mainWindow) mainWindow.webContents.send('log-received', errMsg);
+      if (activeShuttleWindow) activeShuttleWindow.webContents.send('log-received', errMsg);
+    }
+  } else {
+    // Send all other lines as raw logs to the active window
+    targetWindow.webContents.send('log-received', line);
+  }
 }
 
 // --- Helper: Port Checker ---
