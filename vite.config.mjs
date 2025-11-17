@@ -10,11 +10,18 @@ export default defineConfig({
   // This is where index.html is located.
   root: 'src/renderer',
 
+  // ADDED: Explicitly tell Vite where to find the PostCSS config.
+  // Your config files are in 'src/renderer', not the project root.
+  // Auto-detection was failing, so we make it explicit.
+  css: {
+    postcss: 'src/renderer', // Looks for postcss.config.js in this dir
+  },
+
   // Base directory for all built assets
   build: {
     // This is now relative to 'root', so we need to go up
     // and put it in the main 'dist' folder
-    outDir: '../../dist/renderer'
+    outDir: '../../dist/renderer',
   },
   plugins: [
     react(),
@@ -25,7 +32,7 @@ export default defineConfig({
         entry: '../main/main.js',
         // Put built file in 'dist-electron'
         // Path is now relative to the 'root'
-        outDir: '../../dist-electron'
+        outDir: '../../dist-electron',
       },
       {
         // Preload-Process entry file

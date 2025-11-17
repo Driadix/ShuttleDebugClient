@@ -2,9 +2,10 @@ const { fontFamily } = require('tailwindcss/defaultTheme');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // Paths are now relative to this file (which is in src/renderer)
   content: [
-    './src/renderer/**/*.{js,ts,jsx,tsx,html}',
-    './src/renderer/index.html'
+    './**/*.{js,ts,jsx,tsx,html}',
+    './index.html'
   ],
   darkMode: 'class', // Enable dark mode based on class
   theme: {
