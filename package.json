@@ -2,9 +2,9 @@
   "name": "app",
   "version": "1.0.0",
   "description": "An Electron application for controlling ESP32 hubs.",
-  "main": "src/main/main.js",
+  "main": "dist-electron/main.js",
   "scripts": {
-    "start": "NODE_ENV=development electron .",
+    "start": "electron .",
     "dev": "vite",
     "build": "vite build",
     "test": "echo \"Error: no test specified\" && exit 1",

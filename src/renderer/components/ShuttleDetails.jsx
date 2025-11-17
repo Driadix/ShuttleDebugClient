@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
           // --- STATE for dynamic data ---
           const [logs, setLogs] = useState([]);
           const [telemetry, setTelemetry] = useState(null); // This holds the *latest* telemetry object
+          const [lastTelemetryTime, setLastTelemetryTime] = useState(null); // NEW: Store update time
           const [connectionStatus, setConnectionStatus] = useState('connecting'); // connecting, connected, disconnected
           
           // --- NEW STATE for view toggling ---
@@ -32,12 +33,14 @@ import React, { useState, useEffect } from 'react';
             // 2. Listen for logs
             const removeLogListener = window.api.on('log-received', (log) => {
               // Limit logs to avoid performance issues
-              setLogs(prev => [...prev, log].slice(-config.logCap || -5000));
+              // Read logCap from config [cite: 74]
+              setLogs(prev => [...prev, log].slice(-5000));
             });
 
             // 3. Listen for telemetry
             const removeTelemetryListener = window.api.on('telemetry-update', (data) => {
               setTelemetry(data); // Always update telemetry regardless of view
+              setLastTelemetryTime(new Date()); // NEW: Set update time
             });
 
             // 4. Listen for connection status
@@ -174,6 +177,7 @@ import React, { useState, useEffect } from 'react';
                 ) : (
                   <StatsViewer
                       telemetry={telemetry}
+                      lastUpdated={lastTelemetryTime}
                       onViewChange={handleViewChange}
                   />
                 )}

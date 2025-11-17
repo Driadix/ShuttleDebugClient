@@ -37,7 +37,7 @@ const LiveLogViewer = ({ logs, onSaveLog, onClearLogs, onViewChange }) => {
         <div className="flex items-center gap-2">
           <button 
             onClick={() => onViewChange('stats')}
-            className="flex items-center gap-2 whitespace-nowrap bg-primary/20 dark:bg-primary/20 text-primary dark:text-sky-300 text-sm font-medium h-8 px-3 rounded-md hover:bg-primary/30 dark:hover:bg-primary/40"
+            className="flex items-center gap-2 whitespace-nowrap bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary text-sm font-medium h-8 px-3 rounded-md border border-border-light dark:border-border-dark hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <BarChart2 size={16} />
             <span>Stats Screen</span>

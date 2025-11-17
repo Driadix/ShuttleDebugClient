@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ScannerControl from './ScannerControl';
 import HubCard from './HubCard';
+import { Network } from 'lucide-react'; // Import a lucide icon
 
 // This component is the new main dashboard screen
 const Dashboard = () => {
@@ -23,7 +24,7 @@ const Dashboard = () => {
       });
     });
     
-    // 3. Listen for batch updates (from background liveness scan - Phase 5)
+    // 3. Listen for batch updates (from background liveness scan) [cite: 178, 248]
     const removeHubsUpdatedListener = window.api.on('hubs-updated', (updatedHubs) => {
       setHubs(updatedHubs);
     });
@@ -37,7 +38,7 @@ const Dashboard = () => {
     });
 
     // --- Initial Scan ---
-    // Trigger the initial scan on dashboard load
+    // Trigger the initial scan on dashboard load [cite: 48, 87]
     handleStartScan();
 
     // Cleanup
@@ -52,11 +53,11 @@ const Dashboard = () => {
 
   // --- API Callbacks ---
   const handleStartScan = async (scanParams) => {
-    setHubs([]); // Clear existing hubs for a manual scan
+    setHubs([]); // Clear existing hubs for a manual scan [cite: 95]
     setScanStatus({ percent: 0, ip: 'Starting...', complete: false });
     
     // Call 'start-scan'. If scanParams is undefined, main.js will use defaults
-    // from config.json.
+    // from config.json. [cite: 87, 158]
     const result = await window.api.invoke('start-scan', scanParams);
     
     setScanStatus({ percent: 100, ip: result, complete: true });
@@ -67,9 +68,9 @@ const Dashboard = () => {
       {/* Header */}
       <header className="flex h-16 shrink-0 items-center justify-between border-b border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-6">
         <div className="flex items-center gap-3">
-          {/* Placeholder for Logo */}
+          {/* Logo Replaced with Icon */}
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-primary">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12s2.545-5 7-5c4.454 0 7 5 7 5s-2.546 5-7 5c-4.455 0-7-5-7-5z"/><path d="M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M2 12h3"/><path d="M19 12h3"/></svg>
+            <Network size={18} />
           </div>
           <div className="flex flex-col">
             <h1 className="text-base font-semibold leading-none text-text-primary-light dark:text-text-primary-dark">ESP32 Hubs</h1>

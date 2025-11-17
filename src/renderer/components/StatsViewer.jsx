@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Search, List } from 'lucide-react';
 
+// Per TechSpec 5.2, these are the *guaranteed* fields [cite: 217-227]
+// We will format them. All other fields will be passed through.
+
 // Helper to format telemetry keys into readable names
 const formatStatName = (key) => {
   if (key === 'cpu_temp') return 'CPU Temperature';
@@ -16,6 +19,7 @@ const formatStatName = (key) => {
 
 // Helper to format values
 const formatStatValue = (key, value) => {
+  if (value === null || value === undefined) return '...';
   if (key === 'cpu_temp') return `${value.toFixed(1)} °C`;
   if (key === 'total_dist_travel') return `${(value / 1000).toFixed(2)} km`;
   if (key === 'max_speed') return `${value} (raw)`;
@@ -26,12 +30,20 @@ const formatStatValue = (key, value) => {
   return value.toString();
 };
 
-const StatsViewer = ({ telemetry, onViewChange }) => {
+// Helper to format the single timestamp
+const formatTimestamp = (date) => {
+  if (!date) return '...';
+  return date.toLocaleTimeString();
+};
+
+const StatsViewer = ({ telemetry, lastUpdated, onViewChange }) => {
   const [filter, setFilter] = useState('');
 
   // Per TechSpec 5.2, the telemetry object is the source of truth.
   // We will display all keys it provides.
   const stats = telemetry ? Object.keys(telemetry) : [];
+
+  const formattedTimestamp = formatTimestamp(lastUpdated);
 
   const filteredStats = stats
     .map(key => ({
@@ -70,7 +82,7 @@ const StatsViewer = ({ telemetry, onViewChange }) => {
         </div>
       </div>
 
-      {/* Stats Table */}
+      {/* Stats Table - NEW LAYOUT */}
       <div className="flex-1 overflow-y-auto">
         {!telemetry ? (
           <div className="p-4 text-center text-text-light-secondary dark:text-text-dark-secondary">
@@ -81,18 +93,27 @@ const StatsViewer = ({ telemetry, onViewChange }) => {
             <thead className="sticky top-0 bg-panel-light dark:bg-panel-dark z-10">
               <tr>
                 <th className="text-left font-semibold p-3 border-b border-border-light dark:border-border-dark w-1/3">Statistic</th>
-                <th className="text-left font-semibold p-3 border-b border-border-light dark:border-border-dark w-1/3">Key</th>
                 <th className="text-left font-semibold p-3 border-b border-border-light dark:border-border-dark w-1/3">Value</th>
+                <th className="text-left font-semibold p-3 border-b border-border-light dark:border-border-dark w-1/3">Last Updated</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light dark:divide-border-dark">
               {filteredStats.map((stat) => (
                 <tr key={stat.key}>
                   <td className="p-3">{stat.name}</td>
-                  <td className="p-3 font-mono text-xs text-text-light-secondary dark:text-text-dark-secondary">{stat.key}</td>
                   <td className="p-3 font-medium">{stat.value}</td>
+                  <td className="p-3 text-text-light-secondary dark:text-text-dark-secondary">
+                    {formattedTimestamp}
+                  </td>
                 </tr>
               ))}
+              {filteredStats.length === 0 && (
+                <tr>
+                  <td colSpan="3" className="p-4 text-center text-text-light-secondary dark:text-text-dark-secondary">
+                    No stats match your filter.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         )}

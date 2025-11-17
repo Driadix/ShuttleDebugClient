@@ -1,12 +1,22 @@
 import React from 'react';
+import {
+  BatteryFull,
+  BatteryMedium,
+  BatteryLow,
+  BatteryWarning,
+  Loader,
+  CheckCircle,
+  XCircle,
+  WifiOff
+} from 'lucide-react';
 
-// Maps battery level to a Material Symbols icon
+// Maps battery level to a Lucide icon
 const getBatteryIcon = (battery) => {
-  if (battery > 95) return 'battery_full';
-  if (battery > 80) return 'battery_horiz_075';
-  if (battery > 50) return 'battery_horiz_050';
-  if (battery > 20) return 'battery_horiz_000'; // Using this for low
-  return 'battery_alert';
+  if (battery > 95) return <BatteryFull size={16} />;
+  if (battery > 80) return <BatteryFull size={16} className="!text-[18px]" />; // Lucide doesn't have 75%
+  if (battery > 50) return <BatteryMedium size={16} />;
+  if (battery > 20) return <BatteryLow size={16} />;
+  return <BatteryWarning size={16} />;
 };
 
 // Maps status string to a color and style
@@ -16,35 +26,39 @@ const getStatusStyle = (status) => {
     return {
       text: 'Error',
       dot: 'bg-red-500',
-      badge: 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+      badge: 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400',
+      icon: <XCircle size={16} />
     };
   }
   if (s.includes('load') || s.includes('run')) {
     return {
       text: 'Busy',
       dot: 'bg-blue-500',
-      badge: 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400'
+      badge: 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400',
+      icon: <Loader size={16} className="animate-spin" />
     };
   }
   if (s.includes('offline')) {
     return {
       text: 'Offline',
       dot: 'bg-gray-500',
-      badge: 'bg-gray-100 dark:bg-gray-700/20 text-gray-600 dark:text-gray-400'
+      badge: 'bg-gray-100 dark:bg-gray-700/20 text-gray-600 dark:text-gray-400',
+      icon: <WifiOff size={16} />
     };
   }
   // Default to Stand By
   return {
     text: 'Stand By',
     dot: 'bg-green-500',
-    badge: 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400'
+    badge: 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400',
+    icon: <CheckCircle size={16} />
   };
 };
 
 const HubCard = ({ hub }) => {
   
   const handleDoubleClick = () => {
-    // Per TechSpec 2.3.1, open details on double click
+    // Per TechSpec 2.3.1, open details on double click [cite: 50, 256]
     window.api.invoke('open-shuttle-details', hub);
   };
 
@@ -66,7 +80,7 @@ const HubCard = ({ hub }) => {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark font-mono">{hub.ip}</p>
         <div className="flex items-center gap-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-          <span className="material-symbols-outlined !text-base">{batteryIcon}</span>
+          {batteryIcon}
           <span>{hub.battery}%</span>
         </div>
       </div>
