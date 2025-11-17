@@ -16,6 +16,8 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/postcss": "^4.1.17",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.22",
     "electron": "^39.2.1",
@@ -26,7 +28,6 @@
     "vite-plugin-electron-renderer": "^0.14.6"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.1.17",
     "lucide-react": "^0.553.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

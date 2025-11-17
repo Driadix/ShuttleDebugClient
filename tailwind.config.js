@@ -1,11 +1,13 @@
+// This file now lives in the PROJECT ROOT.
 const { fontFamily } = require('tailwindcss/defaultTheme');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // Paths are now relative to this file (which is in src/renderer)
+  // The 'content' paths are now relative to this file (the project root).
+  // This tells Tailwind to scan the correct files inside 'src/renderer'.
   content: [
-    './**/*.{js,ts,jsx,tsx,html}',
-    './index.html'
+    './src/renderer/index.html',
+    './src/renderer/**/*.{js,ts,jsx,tsx}',
   ],
   darkMode: 'class', // Enable dark mode based on class
   theme: {

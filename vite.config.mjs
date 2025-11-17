@@ -6,16 +6,12 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Tell Vite where the root of the renderer app is.
-  // This is where index.html is located.
+  // This is correct:
   root: 'src/renderer',
 
-  // ADDED: Explicitly tell Vite where to find the PostCSS config.
-  // Your config files are in 'src/renderer', not the project root.
-  // Auto-detection was failing, so we make it explicit.
-  css: {
-    postcss: 'src/renderer', // Looks for postcss.config.js in this dir
-  },
+  // REMOVED: The 'css: { ... }' block is deleted.
+  // Vite will now automatically find the new 'postcss.config.js'
+  // in the project root, which is the default behavior.
 
   // Base directory for all built assets
   build: {
