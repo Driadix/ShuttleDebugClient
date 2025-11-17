@@ -3,14 +3,14 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const net = require("net");
 const fs = require("fs");
-const configPath = path.join(app.getAppPath(), "..", "config.json");
+const isDev = !!process.env.VITE_DEV_SERVER_URL;
+const configPath = path.join(app.getAppPath(), "config.json");
 let config = {};
 try {
-  const configReadPath = fs.existsSync(configPath) ? configPath : path.join(__dirname, "..", "..", "config.json");
-  config = JSON.parse(fs.readFileSync(configReadPath, "utf-8"));
-  console.log("Config loaded:", config);
+  config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  console.log(`Config loaded from ${configPath}:`, config);
 } catch (err) {
-  console.error("Failed to load config.json. Using defaults.", err);
+  console.error(`Failed to load config.json from ${configPath}. Using defaults.`, err);
   config = {
     defaultScanRange: { start: "192.168.40.1", end: "192.168.40.255" },
     defaultScanTimeout: 500,
@@ -25,19 +25,22 @@ const shuttleSockets = /* @__PURE__ */ new Map();
 const knownHubs = /* @__PURE__ */ new Map();
 let livenessInterval = null;
 function createWindow() {
+  const preloadPath = isDev ? path.join(__dirname, "..", "preload", "preload.js") : path.join(__dirname, "preload.js");
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, "..", "preload", "preload.js"),
+      preload: preloadPath,
+      // Use the new correct path
       contextIsolation: true,
       nodeIntegration: false
     }
   });
-  if (process.env.NODE_ENV === "development") {
+  if (isDev) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(path.join(__dirname, "..", "..", "dist", "index.html"));
+    const htmlPath = path.join(__dirname, "..", "renderer", "index.html");
+    mainWindow.loadFile(htmlPath);
   }
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -275,21 +278,24 @@ function registerIpcHandlers() {
       shuttleWindows.get(hub.ip).focus();
       return;
     }
+    const preloadPath = path.join(__dirname, "preload.js");
     const shuttleWindow = new BrowserWindow({
       width: 1e3,
       height: 700,
       title: `${hub.name} | ${hub.ip}`,
       webPreferences: {
-        preload: path.join(__dirname, "..", "preload", "preload.js"),
+        preload: preloadPath,
+        // Use the correct path
         contextIsolation: true,
         nodeIntegration: false
       }
     });
     shuttleWindows.set(hub.ip, shuttleWindow);
-    if (process.env.NODE_ENV === "development") {
+    if (isDev) {
       shuttleWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}/#/shuttle/${hub.id}`);
     } else {
-      shuttleWindow.loadFile(path.join(__dirname, "..", "..", "dist", "index.html"), {
+      const htmlPath = path.join(__dirname, "..", "renderer", "index.html");
+      shuttleWindow.loadFile(htmlPath, {
         hash: `#/shuttle/${hub.id}`
       });
     }

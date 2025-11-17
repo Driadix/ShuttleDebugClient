@@ -3,19 +3,19 @@ const path = require('path');
 const net = require('net');
 const fs = require('fs');
 
-// --- Config Loading ---
-// Load configuration from config.json at the root
-const configPath = path.join(app.getAppPath(), '..', 'config.json');
+// --- Pathing & Config (FIXED) ---
+const isDev = !!process.env.VITE_DEV_SERVER_URL;
+
+// This is the most reliable way to find the config.
+// app.getAppPath() returns the project root in both dev and prod.
+const configPath = path.join(app.getAppPath(), 'config.json');
+
 let config = {};
 try {
-  // Check if we are in a packaged app
-  const configReadPath = fs.existsSync(configPath) 
-    ? configPath  // Packaged app path
-    : path.join(__dirname, '..', '..', 'config.json'); // Dev path
-  config = JSON.parse(fs.readFileSync(configReadPath, 'utf-8'));
-  console.log('Config loaded:', config);
+  config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  console.log(`Config loaded from ${configPath}:`, config);
 } catch (err) {
-  console.error('Failed to load config.json. Using defaults.', err);
+  console.error(`Failed to load config.json from ${configPath}. Using defaults.`, err);
   // Set defaults in case config fails to load
   config = {
     defaultScanRange: { start: '192.168.40.1', end: '192.168.40.255' },
@@ -36,21 +36,36 @@ let livenessInterval = null;      // Holds the interval for the liveness scan
 
 
 function createWindow () {
+  // --- Preload Path (FIXED) ---
+  // In Prod, __dirname is .../dist/electron
+  // and preload.js is in .../dist/electron/preload.js
+  // In Dev, this path isn't used (Vite handles it) but we use __dirname
+  // which is .../src/main, so we go up and to preload.
+  const preloadPath = isDev 
+    ? path.join(__dirname, '..', 'preload', 'preload.js')
+    : path.join(__dirname, 'preload.js');
+
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, '..', 'preload', 'preload.js'),
+      preload: preloadPath, // Use the new correct path
       contextIsolation: true,
       nodeIntegration: false,
     }
   });
 
-  if (process.env.NODE_ENV === 'development') {
+  // --- HTML/URL Path (FIXED) ---
+  if (isDev) {
+    // Development: Load from Vite dev server
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    // mainWindow.webContents.openDevTools(); // Uncomment for debugging
   } else {
-    mainWindow.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
+    // Production: Load from built file
+    // __dirname is .../dist/electron
+    // index.html is in .../dist/renderer/index.html
+    const htmlPath = path.join(__dirname, '..', 'renderer', 'index.html');
+    mainWindow.loadFile(htmlPath);
   }
 
   mainWindow.on('closed', () => {
@@ -354,13 +369,17 @@ function registerIpcHandlers() {
       shuttleWindows.get(hub.ip).focus();
       return;
     }
+    
+    // --- Preload Path (FIXED) ---
+    // __dirname is .../dist/electron
+    const preloadPath = path.join(__dirname, 'preload.js');
 
     const shuttleWindow = new BrowserWindow({
       width: 1000,
       height: 700,
       title: `${hub.name} | ${hub.ip}`,
       webPreferences: {
-        preload: path.join(__dirname, '..', 'preload', 'preload.js'),
+        preload: preloadPath, // Use the correct path
         contextIsolation: true,
         nodeIntegration: false,
       },
@@ -368,10 +387,13 @@ function registerIpcHandlers() {
 
     shuttleWindows.set(hub.ip, shuttleWindow);
 
-    if (process.env.NODE_ENV === 'development') {
+    if (isDev) {
       shuttleWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}/#/shuttle/${hub.id}`);
     } else {
-      shuttleWindow.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'), {
+      // __dirname is .../dist/electron
+      // html file is .../dist/renderer/index.html
+      const htmlPath = path.join(__dirname, '..', 'renderer', 'index.html');
+      shuttleWindow.loadFile(htmlPath, {
         hash: `#/shuttle/${hub.id}`,
       });
     }
@@ -435,7 +457,7 @@ function registerIpcHandlers() {
     const { canceled, filePath } = await dialog.showSaveDialog(window, {
       title: 'Save Logs',
       defaultPath: `hub-${ip}-logs-${new Date().toISOString().split('T')[0]}.txt`,
-      filters: [{ name: 'Text Files', extensions: ['txt'] }]
+      filters: [{ name: "Text Files", extensions: ["txt"] }]
     });
 
     if (canceled || !filePath) {

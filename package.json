@@ -2,11 +2,11 @@
   "name": "app",
   "version": "1.0.0",
   "description": "An Electron application for controlling ESP32 hubs.",
-  "main": "dist-electron/main.js",
+  "main": "dist/electron/main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "vite -c vite.config.mjs",
+    "build": "vite build -c vite.config.mjs",
     "test": "echo \"Error: no test specified\" && exit 1",
     "tailwind-init": "tailwindcss init -p"
   },
