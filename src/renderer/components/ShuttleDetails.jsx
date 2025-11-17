@@ -1,5 +1,6 @@
-        import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
         import LiveLogViewer from './LiveLogViewer';
+        import StatsViewer from './StatsViewer'; // Import the new component
         import QuickActions from './QuickActions';
         import MovementConfig from './MovementConfig';
         import SystemTime from './SystemTime';
@@ -8,17 +9,20 @@
           // This 'shuttle' state is only the *initial* static data
           const [shuttle, setShuttle] = useState(null); 
 
-          // --- NEW STATE for dynamic data ---
+          // --- STATE for dynamic data ---
           const [logs, setLogs] = useState([]);
-          const [telemetry, setTelemetry] = useState(null);
+          const [telemetry, setTelemetry] = useState(null); // This holds the *latest* telemetry object
           const [connectionStatus, setConnectionStatus] = useState('connecting'); // connecting, connected, disconnected
+          
+          // --- NEW STATE for view toggling ---
+          const [viewMode, setViewMode] = useState('logs'); // 'logs' | 'stats'
 
-          // --- NEW: API Event Listeners ---
+          // --- API Event Listeners ---
           useEffect(() => {
             // 1. Get initial static data (name, ip)
             const removeDataListener = window.api.on('shuttle-data', (data) => {
               setShuttle(data);
-              setLogs(prev => [...prev, `[INFO] Opening details for ${data.name} (${data.ip})`]);
+              setLogs(prev => [`[INFO] Opening details for ${data.name} (${data.ip})`]);
 
               // Now that we have the IP, try to connect
               window.api.invoke('connect-hub', data.ip)
@@ -27,12 +31,13 @@
 
             // 2. Listen for logs
             const removeLogListener = window.api.on('log-received', (log) => {
-              setLogs(prev => [...prev, log]);
+              // Limit logs to avoid performance issues
+              setLogs(prev => [...prev, log].slice(-config.logCap || -5000));
             });
 
             // 3. Listen for telemetry
             const removeTelemetryListener = window.api.on('telemetry-update', (data) => {
-              setTelemetry(data);
+              setTelemetry(data); // Always update telemetry regardless of view
             });
 
             // 4. Listen for connection status
@@ -43,7 +48,7 @@
 
             const removeDisconnectListener = window.api.on('hub-disconnected', () => {
               setConnectionStatus('disconnected');
-              setLogs(prev => [...prev, '[WARN] Hub disconnected.']);
+              setLogs(prev => [...prev, '[WARN] Hub disconnected. Retrying...']);
             });
 
             return () => {
@@ -55,18 +60,19 @@
             };
           }, []);
 
-          // --- NEW: Command Handlers ---
+          // --- Command Handlers ---
           const handleSendCommand = (command) => {
-            if (connectionStatus === 'connected') {
-              window.api.send('send-command', command);
+            if (connectionStatus === 'connected' && shuttle) {
+              window.api.send('send-command', { ip: shuttle.ip, command: command });
             } else {
               setLogs(prev => [...prev, '[ERROR] Cannot send command: Not connected.']);
             }
           };
 
           const handleSaveLog = async () => {
+            if (!shuttle) return;
             const logString = logs.join('\n');
-            const result = await window.api.invoke('save-log', logString);
+            const result = await window.api.invoke('save-log', { ip: shuttle.ip, logs: logString });
             if (result.success) {
               setLogs(prev => [...prev, `[INFO] Log saved to ${result.path}`]);
             } else {
@@ -79,13 +85,23 @@
           };
  
            const handleDisconnect = () => {
-             // Closing the window fires the disconnect event in main.js
-             // This button just closes the window.
              window.close();
+           };
+           
+           // View change handler
+           const handleViewChange = (mode) => {
+             setViewMode(mode);
            };
  
            if (!shuttle) {
-             return <div className="flex h-screen items-center justify-center">Loading shuttle data...</div>;
+             return (
+              <div className="flex h-screen items-center justify-center bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  Loading shuttle data...
+                </div>
+              </div>
+             );
           }
 
           // Determine status display from live telemetry if available
@@ -95,6 +111,18 @@
           const error = telemetry ? (telemetry.err === 0 ? 'None' : `E-${telemetry.err}`) : '...';
 
           const isConnected = connectionStatus === 'connected';
+
+          // Determine status text/color
+          let statusText = 'Connecting...';
+          let statusColor = 'bg-gray-500';
+          if (connectionStatus === 'disconnected') {
+            statusText = 'Reconnecting...';
+            statusColor = 'bg-yellow-500';
+          } else if (isConnected) {
+            statusText = status;
+            statusColor = (error === 'None') ? 'bg-green-500' : 'bg-red-500';
+          }
+
 
           return (
             <div className="flex h-screen w-full flex-col bg-background-light dark:bg-background-dark font-display text-text-light-primary dark:text-text-dark-primary">
@@ -115,8 +143,8 @@
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">Status:</p>
                     <div className="flex items-center gap-1.5">
-                      <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? (error === 'None' ? 'bg-green-500' : 'bg-red-500') : 'bg-gray-500'}`}></div>
-                      <p className="text-sm font-semibold">{isConnected ? status : 'Connecting...'}</p>
+                      <div className={`h-2.5 w-2.5 rounded-full ${statusColor}`}></div>
+                      <p className="text-sm font-semibold">{statusText}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -135,15 +163,25 @@
               </div>
 
               <main className="flex flex-1 flex-col lg:flex-row gap-6 p-6 overflow-hidden">
-                <LiveLogViewer
-                    logs={logs}
-                    onSaveLog={handleSaveLog}
-                    onClearLogs={handleClearLogs}
-                />
+                {/* --- Conditional View Rendering --- */}
+                {viewMode === 'logs' ? (
+                  <LiveLogViewer
+                      logs={logs}
+                      onSaveLog={handleSaveLog}
+                      onClearLogs={handleClearLogs}
+                      onViewChange={handleViewChange}
+                  />
+                ) : (
+                  <StatsViewer
+                      telemetry={telemetry}
+                      onViewChange={handleViewChange}
+                  />
+                )}
+                
                 <div className="flex flex-col w-full lg:w-[30%] gap-4 overflow-y-auto">
-                  <QuickActions onSendCommand={handleSendCommand} />
-                  <MovementConfig onSendCommand={handleSendCommand} />
-                  <SystemTime onSendCommand={handleSendCommand} />
+                  <QuickActions onSendCommand={handleSendCommand} isDisabled={!isConnected} />
+                  <MovementConfig onSendCommand={handleSendCommand} isDisabled={!isConnected} />
+                  <SystemTime onSendCommand={handleSendCommand} isDisabled={!isConnected} />
                 </div>
               </main>
             </div>

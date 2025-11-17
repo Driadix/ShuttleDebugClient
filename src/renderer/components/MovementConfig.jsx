@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const MovementConfig = ({ onSendCommand }) => {
+const MovementConfig = ({ onSendCommand, isDisabled }) => {
   const [maxSpeed, setMaxSpeed] = useState('150'); // ESP32 default
   const [minBattery, setMinBattery] = useState('20');
   const [moveFwd, setMoveFwd] = useState('');
@@ -32,23 +32,77 @@ const MovementConfig = ({ onSendCommand }) => {
       <div className="p-4 space-y-4">
         <div className="flex items-center gap-2">
           <label className="text-sm w-28 flex-shrink-0" htmlFor="max-speed">Max Speed</label>
-          <input value={maxSpeed} onChange={(e) => setMaxSpeed(e.target.value)} className="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark py-1.5 px-3 text-sm focus:border-primary focus:ring-primary" id="max-speed" type="number" />
-          <button onClick={handleSetMaxSpeed} className="bg-primary/20 dark:bg-primary/20 text-primary dark:text-sky-300 text-sm font-medium h-8 px-3 rounded-md hover:bg-primary/30 dark:hover:bg-primary/40">Set</button>
+          <input 
+            value={maxSpeed} 
+            onChange={(e) => setMaxSpeed(e.target.value)} 
+            disabled={isDisabled}
+            className="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark py-1.5 px-3 text-sm focus:border-primary focus:ring-primary disabled:opacity-50" 
+            id="max-speed" 
+            type="number" 
+          />
+          <button 
+            onClick={handleSetMaxSpeed} 
+            disabled={isDisabled}
+            className="bg-primary/20 dark:bg-primary/20 text-primary dark:text-sky-300 text-sm font-medium h-8 px-3 rounded-md hover:bg-primary/30 dark:hover:bg-primary/40 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Set
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <label className="text-sm w-28 flex-shrink-0" htmlFor="min-battery">Min Battery %</label>
-          <input value={minBattery} onChange={(e) => setMinBattery(e.target.value)} className="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark py-1.5 px-3 text-sm focus:border-primary focus:ring-primary" id="min-battery" type="number" />
-          <button onClick={handleSetMinBattery} className="bg-primary/20 dark:bg-primary/20 text-primary dark:text-sky-300 text-sm font-medium h-8 px-3 rounded-md hover:bg-primary/30 dark:hover:bg-primary/40">Set</button>
+          <input 
+            value={minBattery} 
+            onChange={(e) => setMinBattery(e.target.value)} 
+            disabled={isDisabled}
+            className="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark py-1.5 px-3 text-sm focus:border-primary focus:ring-primary disabled:opacity-50" 
+            id="min-battery" 
+            type="number" 
+          />
+          <button 
+            onClick={handleSetMinBattery} 
+            disabled={isDisabled}
+            className="bg-primary/20 dark:bg-primary/20 text-primary dark:text-sky-300 text-sm font-medium h-8 px-3 rounded-md hover:bg-primary/30 dark:hover:bg-primary/40 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Set
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <label className="text-sm w-28 flex-shrink-0" htmlFor="move-fwd">Move Fwd (m)</label>
-          <input value={moveFwd} onChange={(e) => setMoveFwd(e.target.value)} className="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark py-1.5 px-3 text-sm focus:border-primary focus:ring-primary" id="move-fwd" placeholder="meters" type="number" />
-          <button onClick={handleMoveFwd} className="bg-primary/20 dark:bg-primary/20 text-primary dark:text-sky-300 text-sm font-medium h-8 px-3 rounded-md hover:bg-primary/30 dark:hover:bg-primary/40">Go</button>
+          <input 
+            value={moveFwd} 
+            onChange={(e) => setMoveFwd(e.target.value)} 
+            disabled={isDisabled}
+            className="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark py-1.5 px-3 text-sm focus:border-primary focus:ring-primary disabled:opacity-50" 
+            id="move-fwd" 
+            placeholder="meters" 
+            type="number" 
+          />
+          <button 
+            onClick={handleMoveFwd} 
+            disabled={isDisabled}
+            className="bg-primary/20 dark:bg-primary/20 text-primary dark:text-sky-300 text-sm font-medium h-8 px-3 rounded-md hover:bg-primary/30 dark:hover:bg-primary/40 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Go
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <label className="text-sm w-28 flex-shrink-0" htmlFor="move-rev">Move Rev (m)</label>
-          <input value={moveRev} onChange={(e) => setMoveRev(e.target.value)} className="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark py-1.5 px-3 text-sm focus:border-primary focus:ring-primary" id="move-rev" placeholder="meters" type="number" />
-          <button onClick={handleMoveRev} className="bg-primary/20 dark:bg-primary/20 text-primary dark:text-sky-300 text-sm font-medium h-8 px-3 rounded-md hover:bg-primary/30 dark:hover:bg-primary/40">Go</button>
+          <input 
+            value={moveRev} 
+            onChange={(e) => setMoveRev(e.target.value)} 
+            disabled={isDisabled}
+            className="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark py-1.5 px-3 text-sm focus:border-primary focus:ring-primary disabled:opacity-50" 
+            id="move-rev" 
+            placeholder="meters" 
+            type="number" 
+          />
+          <button 
+            onClick={handleMoveRev} 
+            disabled={isDisabled}
+            className="bg-primary/20 dark:bg-primary/20 text-primary dark:text-sky-300 text-sm font-medium h-8 px-3 rounded-md hover:bg-primary/30 dark:hover:bg-primary/40 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Go
+          </button>
         </div>
       </div>
     </div>

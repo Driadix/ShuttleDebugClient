@@ -1,0 +1,13 @@
+{
+  "defaultScanRange": {
+    "start": "192.168.40.1",
+    "end": "192.168.40.255"
+  },
+  "defaultScanTimeout": 500,
+  "logCap": 5000,
+  "reconnectInterval": 4000,
+  "dashboardRescanInterval": 10000,
+  "commandMappings": {
+    "REBOOT": "SYS_REBOOT_CMD_PLACEHOLDER"
+  }
+}

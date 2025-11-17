@@ -1,71 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from './components/Sidebar';
-import EmptyState from './components/EmptyState';
+import Dashboard from './components/Dashboard';
+import ShuttleDetails from './components/ShuttleDetails';
+import './index.css'; // Ensure global styles are imported
 
-function App() {
-  const [hubs, setHubs] = useState([]);
-  const [scanStatus, setScanStatus] = useState({ percent: 0, ip: '', complete: false });
-  const [selectedHubId, setSelectedHubId] = useState(null);
+// A simple hash-based router
+const useHash = () => {
+  const [hash, setHash] = useState(window.location.hash);
 
-  // --- MOCK DATA ---
   useEffect(() => {
-    setHubs([
-      { id: '192.168.40.72', name: 'Shuttle 18', ip: '192.168.40.72', status: 'Stand By', battery: 88 },
-      { id: '192.168.40.75', name: 'Shuttle 19', ip: '192.168.40.75', status: 'Error', battery: 22 },
-    ]);
-  }, []);
-
-  // --- API Event Listeners ---
-  useEffect(() => {
-    const removeScanProgressListener = window.api.on('scan-progress', ({ ip, percent }) => {
-      setScanStatus({ percent, ip, complete: false });
-    });
-
-    const removeHubFoundListener = window.api.on('hub-found', (hub) => {
-      setHubs(prev => [...prev, hub]);
-    });
-
-    // Listen for disconnects to deselect in sidebar
-    const removeDisconnectListener = window.api.on('hub-disconnected', () => {
-      setSelectedHubId(null);
-    });
-
+    const handleHashChange = () => {
+      setHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', handleHashChange);
     return () => {
-      removeScanProgressListener();
-      removeHubFoundListener();
-      removeDisconnectListener();
+      window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
 
+  return hash;
+};
 
-  // --- API Callbacks ---
-  const handleStartScan = async () => {
-    setHubs([]); // Clear existing hubs
-    setScanStatus({ percent: 0, ip: 'Starting...', complete: false });
-    setSelectedHubId(null);
-    const result = await window.api.invoke('start-scan', { start: '192.168.40.1', end: '192.168.40.254', timeout: 500 });
-    setScanStatus({ percent: 100, ip: result, complete: true });
-  };
+// This component will now decide which "page" to show
+// based on the URL hash, which main.js sets when opening a new window.
+const App = () => {
+  const hash = useHash();
 
-  const handleSelectHub = (hub) => {
-    setSelectedHubId(hub.id);
-    // The DiscoveredHubs component now handles opening the window
-  };
-
-  return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-text-light-primary dark:text-text-dark-primary">
-      <Sidebar
-        hubs={hubs}
-        onSelectHub={handleSelectHub}
-        selectedHubId={selectedHubId}
-        onScan={handleStartScan}
-        scanStatus={scanStatus}
-      />
-      <main className="flex-1 overflow-hidden">
-        <EmptyState />
-      </main>
-    </div>
-  );
-}
+  if (hash.startsWith('#/shuttle/')) {
+    // This is the route for the Shuttle Details window
+    return <ShuttleDetails />;
+  }
+  
+  // The default view is the main Dashboard
+  return <Dashboard />;
+};
 
 export default App;
