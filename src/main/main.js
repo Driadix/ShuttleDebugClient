@@ -41,9 +41,7 @@ function createWindow () {
   // and preload.js is in .../dist/electron/preload.js
   // In Dev, this path isn't used (Vite handles it) but we use __dirname
   // which is .../src/main, so we go up and to preload.
-  const preloadPath = isDev 
-    ? path.join(__dirname, '..', 'preload', 'preload.js')
-    : path.join(__dirname, 'preload.js');
+  const preloadPath = path.join(__dirname, 'preload.js');
 
 
   mainWindow = new BrowserWindow({
